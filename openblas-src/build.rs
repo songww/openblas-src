@@ -8,6 +8,21 @@ fn binary() -> String {
     env::var("CARGO_CFG_TARGET_POINTER_WIDTH").unwrap()
 }
 
+fn target() -> String {
+    let target_ = env::var("OPENBLAS_TARGET");
+    if target_.is_ok() {
+        return target_.unwrap();
+    }
+    let target_ = env::var("TARGET").unwrap();
+    if target_ == "aarch64-apple-ios" || target_ == "aarch64-linux-android" {
+        return "ARMV8".to_string();
+    }
+    if target_ == "armv7-apple-ios" || target_ == "armv7-linux-androideabi" {
+        return "ARMV7".to_string();
+    }
+    target_
+}
+
 /// Add path where pacman (on msys2) install OpenBLAS
 ///
 /// - `pacman -S mingw-w64-x86_64-openblas` will install
@@ -107,7 +122,7 @@ fn main() {
 
         let output = PathBuf::from(env::var("OUT_DIR").unwrap().replace(r"\", "/"));
         let mut make = Command::new("make");
-        make.args(&["libs", "netlib", "shared"])
+        make.args(&["libs"])
             .arg(format!("BINARY={}", binary()))
             .arg(format!(
                 "{}_CBLAS=1",
@@ -134,14 +149,7 @@ fn main() {
         if let Ok(num_jobs) = env::var("NUM_JOBS") {
             make.arg(format!("-j{}", num_jobs));
         }
-        let target = match env::var("OPENBLAS_TARGET") {
-            Ok(target) => {
-                make.arg(format!("TARGET={}", target));
-                target
-            }
-            _ => env::var("TARGET").unwrap(),
-        };
-        env::remove_var("TARGET");
+        let target = format!("TARGET={}", target());
         let source = if feature_enabled("cache") {
             PathBuf::from(format!("source_{}", target.to_lowercase()))
         } else {
