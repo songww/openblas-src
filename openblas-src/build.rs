@@ -65,6 +65,17 @@ fn macos_system() {
     println!("cargo:rustc-link-search=/usr/local/opt/openblas/lib");
 }
 
+fn mobile_system() {
+    match env::var("OPENBLAS_PREBUILD") {
+        Ok(prebuild) => {
+            println!("cargo:rustc-link-search={}", prebuild);
+        }
+        Err(_) => {
+            panic!("prebuild openblas missing.");
+        }
+    }
+}
+
 fn main() {
     let link_kind = if feature_enabled("static") {
         "static"
@@ -86,6 +97,9 @@ fn main() {
         }
         if cfg!(target_os = "macos") {
             macos_system();
+        }
+        if cfg!(target_os = "ios") || cfg!(target_os = "android") {
+            mobile_system();
         }
         println!("cargo:rustc-link-lib={}=openblas", link_kind);
     } else {
