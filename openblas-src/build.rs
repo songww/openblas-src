@@ -4,12 +4,8 @@ fn feature_enabled(feature: &str) -> bool {
     env::var(format!("CARGO_FEATURE_{}", feature.to_uppercase())).is_ok()
 }
 
-fn binary() -> &'static str {
-    if cfg!(target_pointer_width = "32") {
-        "32"
-    } else {
-        "64"
-    }
+fn binary() -> String {
+    env::var("CARGO_CFG_TARGET_POINTER_WIDTH").unwrap()
 }
 
 /// Add path where pacman (on msys2) install OpenBLAS
