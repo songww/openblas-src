@@ -8,7 +8,7 @@ fn binary() -> String {
     env::var("CARGO_CFG_TARGET_POINTER_WIDTH").unwrap()
 }
 
-fn target() -> String {
+fn detect_target() -> String {
     let target_ = env::var("OPENBLAS_TARGET");
     if target_.is_ok() {
         return target_.unwrap();
@@ -122,8 +122,10 @@ fn main() {
 
         let output = PathBuf::from(env::var("OUT_DIR").unwrap().replace(r"\", "/"));
         let mut make = Command::new("make");
+        let target = detect_target();
         make.args(&["libs"])
             .arg(format!("BINARY={}", binary()))
+            .arg(format!("TARGET={}", target))
             .arg(format!(
                 "{}_CBLAS=1",
                 if feature_enabled("cblas") {
@@ -142,6 +144,7 @@ fn main() {
             ));
         match env::var("OPENBLAS_ARGS") {
             Ok(args) => {
+                println!("cargo:warning=OPENBLAS_ARGS={}", args);
                 make.args(args.split_whitespace());
             }
             _ => (),
@@ -149,7 +152,6 @@ fn main() {
         if let Ok(num_jobs) = env::var("NUM_JOBS") {
             make.arg(format!("-j{}", num_jobs));
         }
-        let target = format!("TARGET={}", target());
         let source = if feature_enabled("cache") {
             PathBuf::from(format!("source_{}", target.to_lowercase()))
         } else {
